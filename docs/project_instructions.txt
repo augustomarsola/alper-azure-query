@@ -1,0 +1,83 @@
+Project Instructions - Next.js 16 + Tailwind + Shadcn + Azure DevOps Boards
+
+1. Architecture Overview
+- Next.js 16.0.3 using App Router for full-stack routes.
+- TailwindCSS for styling.
+- Shadcn/ui components for UI and Chart visualizations.
+- Dark theme enabled by default.
+- Full-stack Next.js backend routes for calling Azure DevOps Boards API.
+- Azure DevOps authentication via Personal Access Token (PAT) stored in environment variables.
+
+2. Libraries Used
+- next@16.0.3
+- react
+- tailwindcss
+- shadcn/ui
+- axios or fetch for API calls
+- TypeScript (strict mode)
+
+3. Folder Structure (Planned)
+- /app
+  - /dashboard
+    - page.tsx
+  - /api
+    - /tasks
+      - route.ts
+- /components
+  - /ui (shadcn components)
+- /lib
+  - azure-devops.ts (API wrapper)
+  - types.ts
+  - utils.ts
+
+4. Azure DevOps API Usage
+- Requires Personal Access Token (PAT)
+- API wrapper will include:
+  - list squads (teams)
+  - list tasks for a squad
+- Environment variables
+
+5. UI Requirements
+- Dark theme
+- Clean minimal layout
+- Top-centered Select component (shadcn/ui)
+- Select options: squads fetched via API
+- Graphs using shadcn/ui Chart component
+
+6. Components
+- Select (shadcn)
+- Cards
+- Table
+- Chart
+- Skeleton for Loading
+
+7. Data Flow
+- User selects squad from Select component
+- Frontend calls /api/tasks
+- Backend requests Azure DevOps API
+- Backend returns tasks
+- Frontend displays:
+  - Task list
+  - Charts:
+    - Tasks per Status
+    - Tasks per Type
+    - Tasks per User
+
+8. Missing Variables
+If any required variables (PAT, organization, project) or endpoint details are missing, request them from user.
+
+9. Documentation Checks
+Before generating ANY code, always:
+use context7 nextjs
+use context7 tailwind
+use context7 shadcn
+use context7 azure-devops
+
+Always follow latest documentation.
+
+10. Error Handling
+- Handle missing PAT
+- Handle rate limits
+- Handle empty squads or missing tasks
+
+End of File.
