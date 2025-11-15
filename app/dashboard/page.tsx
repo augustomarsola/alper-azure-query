@@ -29,13 +29,13 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { ChartData, Team, WorkItem } from "@/lib/types";
+import { ChartData, Project, WorkItem } from "@/lib/types";
 import { useEffect, useState } from "react";
-import { Bar, BarChart, CartesianGrid, XAxis, YAxis } from "recharts";
+import { Bar, BarChart, CartesianGrid, Cell, XAxis, YAxis } from "recharts";
 
 export default function DashboardPage() {
-  const [teams, setTeams] = useState<Team[]>([]);
-  const [selectedTeam, setSelectedTeam] = useState<string>("");
+  const [projects, setProjects] = useState<Project[]>([]);
+  const [selectedProject, setSelectedProject] = useState<string>("");
   const [workItems, setWorkItems] = useState<WorkItem[]>([]);
   const [chartData, setChartData] = useState<{
     byStatus: ChartData[];
@@ -50,9 +50,9 @@ export default function DashboardPage() {
   const [tasksLoading, setTasksLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  // Fetch teams on mount
+  // Fetch projects on mount
   useEffect(() => {
-    async function fetchTeams() {
+    async function fetchProjects() {
       try {
         setLoading(true);
         setError(null);
@@ -60,47 +60,37 @@ export default function DashboardPage() {
         const data = await response.json();
 
         if (!response.ok) {
-          throw new Error(data.error || "Failed to fetch teams");
+          throw new Error(data.error || "Failed to fetch projects");
         }
 
-        setTeams(data.teams || []);
+        setProjects(data.projects || []);
       } catch (err) {
-        setError(err instanceof Error ? err.message : "Failed to load teams");
+        setError(
+          err instanceof Error ? err.message : "Failed to load projects"
+        );
       } finally {
         setLoading(false);
       }
     }
 
-    fetchTeams();
+    fetchProjects();
   }, []);
 
-  // Fetch tasks when team selection changes
+  // Fetch tasks when project selection changes
   useEffect(() => {
     async function fetchTasks() {
-      if (!selectedTeam) {
-        // Load all tasks
-        setTasksLoading(true);
-        try {
-          const response = await fetch("/api/tasks");
-          const data = await response.json();
-
-          if (!response.ok) {
-            throw new Error(data.error || "Failed to fetch tasks");
-          }
-
-          setWorkItems(data.workItems || []);
-          setChartData(data.charts);
-        } catch (err) {
-          setError(err instanceof Error ? err.message : "Failed to load tasks");
-        } finally {
-          setTasksLoading(false);
-        }
+      if (!selectedProject) {
+        // Clear tasks when no project is selected
+        setWorkItems([]);
+        setChartData({ byStatus: [], byType: [], byUser: [] });
         return;
       }
 
       setTasksLoading(true);
       try {
-        const response = await fetch(`/api/tasks?teamId=${selectedTeam}`);
+        const response = await fetch(
+          `/api/tasks?projectName=${encodeURIComponent(selectedProject)}`
+        );
         const data = await response.json();
 
         if (!response.ok) {
@@ -117,7 +107,21 @@ export default function DashboardPage() {
     }
 
     fetchTasks();
-  }, [selectedTeam]);
+  }, [selectedProject]);
+
+  // Definir cores diferentes para cada item dos gráficos
+  const CHART_COLORS = [
+    "hsl(var(--chart-1))",
+    "hsl(var(--chart-2))",
+    "hsl(var(--chart-3))",
+    "hsl(var(--chart-4))",
+    "hsl(var(--chart-5))",
+    "hsl(var(--chart-6))",
+    "hsl(var(--chart-7))",
+    "hsl(var(--chart-8))",
+    "hsl(var(--chart-9))",
+    "hsl(var(--chart-10))",
+  ];
 
   const chartConfig: ChartConfig = {
     value: {
@@ -162,21 +166,20 @@ export default function DashboardPage() {
 
   return (
     <div className="container mx-auto py-10 space-y-8">
-      {/* Header with Squad Selector */}
+      {/* Header with Project Selector */}
       <div className="text-center space-y-4">
         <h1 className="text-4xl font-bold tracking-tight">
           Dashboard Azure DevOps
         </h1>
         <div className="flex justify-center">
-          <Select value={selectedTeam} onValueChange={setSelectedTeam}>
+          <Select value={selectedProject} onValueChange={setSelectedProject}>
             <SelectTrigger className="w-[400px]">
-              <SelectValue placeholder="Selecione um squad (ou visualize todas as tarefas)" />
+              <SelectValue placeholder="Selecione um projeto" />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="">Todas as Tarefas</SelectItem>
-              {teams.map((team) => (
-                <SelectItem key={team.id} value={team.id}>
-                  {team.name}
+              {projects.map((project) => (
+                <SelectItem key={project.id} value={project.name}>
+                  {project.name}
                 </SelectItem>
               ))}
             </SelectContent>
@@ -213,7 +216,14 @@ export default function DashboardPage() {
                   />
                   <YAxis tickLine={false} axisLine={false} />
                   <ChartTooltip content={<ChartTooltipContent />} />
-                  <Bar dataKey="value" fill="var(--color-value)" radius={4} />
+                  <Bar dataKey="value" radius={4}>
+                    {chartData.byStatus.map((entry, index) => (
+                      <Cell
+                        key={`cell-${index}`}
+                        fill={CHART_COLORS[index % CHART_COLORS.length]}
+                      />
+                    ))}
+                  </Bar>
                 </BarChart>
               </ChartContainer>
             </CardContent>
@@ -239,7 +249,14 @@ export default function DashboardPage() {
                   />
                   <YAxis tickLine={false} axisLine={false} />
                   <ChartTooltip content={<ChartTooltipContent />} />
-                  <Bar dataKey="value" fill="var(--color-value)" radius={4} />
+                  <Bar dataKey="value" radius={4}>
+                    {chartData.byType.map((entry, index) => (
+                      <Cell
+                        key={`cell-${index}`}
+                        fill={CHART_COLORS[index % CHART_COLORS.length]}
+                      />
+                    ))}
+                  </Bar>
                 </BarChart>
               </ChartContainer>
             </CardContent>
@@ -266,7 +283,14 @@ export default function DashboardPage() {
                   />
                   <YAxis tickLine={false} axisLine={false} />
                   <ChartTooltip content={<ChartTooltipContent />} />
-                  <Bar dataKey="value" fill="var(--color-value)" radius={4} />
+                  <Bar dataKey="value" radius={4}>
+                    {chartData.byUser.map((entry, index) => (
+                      <Cell
+                        key={`cell-${index}`}
+                        fill={CHART_COLORS[index % CHART_COLORS.length]}
+                      />
+                    ))}
+                  </Bar>
                 </BarChart>
               </ChartContainer>
             </CardContent>

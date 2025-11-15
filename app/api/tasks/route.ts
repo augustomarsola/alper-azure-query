@@ -5,39 +5,43 @@ export async function GET(request: NextRequest) {
   try {
     // Get configuration from environment variables
     const organization = process.env.AZURE_DEVOPS_ORGANIZATION;
-    const project = process.env.AZURE_DEVOPS_PROJECT;
     const pat = process.env.AZURE_DEVOPS_PAT;
 
     // Validate configuration
-    if (!organization || !project || !pat) {
+    if (!organization || !pat) {
       return NextResponse.json(
         {
           error: "Configuração do Azure DevOps ausente",
           details:
-            "Por favor, defina AZURE_DEVOPS_ORGANIZATION, AZURE_DEVOPS_PROJECT e AZURE_DEVOPS_PAT nas suas variáveis de ambiente",
+            "Por favor, defina AZURE_DEVOPS_ORGANIZATION e AZURE_DEVOPS_PAT nas suas variáveis de ambiente",
         },
         { status: 500 }
       );
     }
 
-    // Get team ID from query parameters
+    // Get project name from query parameters
     const searchParams = request.nextUrl.searchParams;
-    const teamId = searchParams.get("teamId");
+    const projectName = searchParams.get("projectName");
+
+    if (!projectName) {
+      return NextResponse.json(
+        {
+          error: "Projeto não especificado",
+          details:
+            "Por favor, forneça o parâmetro 'projectName' na query string",
+        },
+        { status: 400 }
+      );
+    }
 
     // Create Azure DevOps client
     const client = createAzureClient({
       organization,
-      project,
       pat,
     });
 
-    // Fetch work items
-    let workItems;
-    if (teamId) {
-      workItems = await client.getWorkItemsByTeam(project, teamId);
-    } else {
-      workItems = await client.getAllWorkItems(project);
-    }
+    // Fetch work items for the specified project
+    const workItems = await client.getWorkItemsByProject(projectName);
 
     // Transform data for charts
     const tasksByStatus: Record<string, number> = {};

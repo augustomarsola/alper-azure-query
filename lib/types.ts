@@ -1,13 +1,14 @@
 export interface AzureDevOpsConfig {
   organization: string;
-  project: string;
   pat: string;
 }
 
-export interface Team {
+export interface Project {
   id: string;
   name: string;
   description?: string;
+  state?: string;
+  visibility?: string;
 }
 
 export interface WorkItem {

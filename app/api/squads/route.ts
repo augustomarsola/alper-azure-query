@@ -5,16 +5,15 @@ export async function GET() {
   try {
     // Get configuration from environment variables
     const organization = process.env.AZURE_DEVOPS_ORGANIZATION;
-    const project = process.env.AZURE_DEVOPS_PROJECT;
     const pat = process.env.AZURE_DEVOPS_PAT;
 
     // Validate configuration
-    if (!organization || !project || !pat) {
+    if (!organization || !pat) {
       return NextResponse.json(
         {
           error: "Configuração do Azure DevOps ausente",
           details:
-            "Por favor, defina AZURE_DEVOPS_ORGANIZATION, AZURE_DEVOPS_PROJECT e AZURE_DEVOPS_PAT nas suas variáveis de ambiente",
+            "Por favor, defina AZURE_DEVOPS_ORGANIZATION e AZURE_DEVOPS_PAT nas suas variáveis de ambiente",
         },
         { status: 500 }
       );
@@ -23,19 +22,18 @@ export async function GET() {
     // Create Azure DevOps client
     const client = createAzureClient({
       organization,
-      project,
       pat,
     });
 
-    // Fetch teams
-    const teams = await client.getTeams(project);
+    // Fetch projects
+    const projects = await client.getProjects();
 
-    return NextResponse.json({ teams });
+    return NextResponse.json({ projects });
   } catch (error) {
-    console.error("Error fetching teams:", error);
+    console.error("Error fetching projects:", error);
     return NextResponse.json(
       {
-        error: "Falha ao buscar times",
+        error: "Falha ao buscar projetos",
         details: error instanceof Error ? error.message : "Erro desconhecido",
       },
       { status: 500 }

@@ -4,7 +4,7 @@ Uma aplicação Next.js 16 para visualizar dados do Azure DevOps Boards com grá
 
 ## Funcionalidades
 
-- 🎯 **Seleção de Squad**: Escolha times específicos ou visualize todas as tarefas
+- 🎯 **Seleção de Projeto**: Escolha entre os projetos disponíveis na sua organização Azure DevOps
 - 📊 **Gráficos Interativos**: Visualize tarefas por status, tipo e responsável
 - 📋 **Lista de Tarefas**: Visualização detalhada em tabela dos itens de trabalho
 - 🌙 **Tema Escuro**: Suporte integrado ao modo escuro
@@ -33,9 +33,6 @@ Crie um arquivo `.env.local` no diretório raiz:
 ```env
 # Nome da sua organização Azure DevOps (da URL: https://dev.azure.com/{organization})
 AZURE_DEVOPS_ORGANIZATION=nome-da-sua-organizacao
-
-# Nome do seu projeto Azure DevOps
-AZURE_DEVOPS_PROJECT=nome-do-seu-projeto
 
 # Seu Token de Acesso Pessoal (PAT) com permissões de leitura em "Work Items"
 AZURE_DEVOPS_PAT=seu-token-de-acesso-pessoal
@@ -101,23 +98,25 @@ Abra [http://localhost:3000](http://localhost:3000) para visualizar o dashboard.
 
 ### GET /api/squads
 
-Busca todos os times no projeto Azure DevOps configurado.
+Busca todos os projetos na organização Azure DevOps configurada.
 
 **Resposta:**
 
 ```json
 {
-  "teams": [{ "id": "team-id", "name": "Nome do Time", "description": "..." }]
+  "projects": [
+    { "id": "project-id", "name": "Nome do Projeto", "description": "..." }
+  ]
 }
 ```
 
-### GET /api/tasks?teamId={id}
+### GET /api/tasks?projectName={nome}
 
-Busca itens de trabalho, opcionalmente filtrados por time.
+Busca itens de trabalho de um projeto específico.
 
 **Parâmetros de Query:**
 
-- `teamId` (opcional): Filtrar por time específico
+- `projectName` (obrigatório): Nome do projeto para buscar tarefas
 
 **Resposta:**
 
