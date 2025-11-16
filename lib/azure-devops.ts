@@ -219,10 +219,6 @@ export class AzureDevOpsClient {
 
         const childrenData = await childrenResponse.json();
         const children = childrenData.value || [];
-        console.log(
-          "🚀 ~ AzureDevOpsClient ~ getPBIsWithRework ~ children:",
-          children
-        );
 
         // Count bugs
         const bugCount = children.filter(

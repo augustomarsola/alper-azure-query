@@ -1,6 +1,9 @@
 import { createAzureClient } from "@/lib/azure-devops";
 import { NextRequest, NextResponse } from "next/server";
 
+// Cache configuration: revalidate every 1 hour (3600 seconds)
+export const revalidate = 3600;
+
 export async function GET(request: NextRequest) {
   try {
     // Get configuration from environment variables
