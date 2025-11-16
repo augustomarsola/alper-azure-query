@@ -5,6 +5,7 @@ Uma aplicação Next.js 16 para visualizar dados do Azure DevOps Boards com grá
 ## Funcionalidades
 
 - 🎯 **Seleção de Projeto**: Escolha entre os projetos disponíveis na sua organização Azure DevOps
+- 📈 **Taxa de Retorno de PBIs**: Acompanhamento de OKR com métricas semestrais de retrabalho
 - 📊 **Gráficos Interativos**: Visualize tarefas por status, tipo e responsável
 - 📋 **Lista de Tarefas**: Visualização detalhada em tabela dos itens de trabalho
 - 🌙 **Tema Escuro**: Suporte integrado ao modo escuro
@@ -56,6 +57,33 @@ npm run dev
 ```
 
 Abra [http://localhost:3000](http://localhost:3000) para visualizar o dashboard.
+
+## OKR: Taxa de Retorno de PBIs
+
+O dashboard inclui um acompanhamento de OKR para monitorar a qualidade do desenvolvimento:
+
+**Objetivo**: Garantir taxa de retorno de PBIs abaixo de 10% no primeiro semestre e abaixo de 5% no segundo
+
+### Como Funciona
+
+- **Retrabalho**: Um PBI é considerado retrabalho quando possui pelo menos um Bug como item filho
+- **Cálculo**: (PBIs com retrabalho / Total de PBIs) × 100
+- **Status**:
+  - 🟢 **Tranquilo** (Verde):
+    - 1º Semestre: < 5%
+    - 2º Semestre: < 2,5%
+  - 🟡 **Atenção** (Amarelo):
+    - 1º Semestre: 5% - 10%
+    - 2º Semestre: 2,5% - 5%
+  - 🔴 **Perigo** (Vermelho):
+    - 1º Semestre: > 10%
+    - 2º Semestre: > 5%
+
+### Visão de Taxa de Retorno
+
+1. **Métricas Semestrais**: Cards com total de PBIs, PBIs com retrabalho e percentual
+2. **Status Visual**: Badge colorido indicando o nível de atenção
+3. **Tabela Detalhada**: Lista todos os PBIs que tiveram retrabalho com quantidade de bugs
 
 ## Estrutura do Projeto
 
@@ -128,6 +156,48 @@ Busca itens de trabalho de um projeto específico.
     "byType": [{ "name": "Bug", "value": 5 }],
     "byUser": [{ "name": "João Silva", "value": 15 }]
   }
+}
+```
+
+### GET /api/pbi-return-rate?projectName={nome}&year={ano}
+
+Analisa a taxa de retorno de PBIs (retrabalho) para um projeto.
+
+**Parâmetros de Query:**
+
+- `projectName` (obrigatório): Nome do projeto
+- `year` (opcional): Ano para análise (padrão: ano atual)
+
+**Resposta:**
+
+```json
+{
+  "firstSemester": {
+    "semester": "1º Semestre",
+    "totalPBIs": 50,
+    "pbisWithRework": 3,
+    "percentage": 6.0,
+    "status": "Atenção",
+    "statusColor": "yellow"
+  },
+  "secondSemester": {
+    "semester": "2º Semestre",
+    "totalPBIs": 45,
+    "pbisWithRework": 2,
+    "percentage": 4.44,
+    "status": "Atenção",
+    "statusColor": "yellow"
+  },
+  "pbisWithRework": [
+    {
+      "id": 123,
+      "title": "Título do PBI",
+      "createdDate": "2025-01-15",
+      "state": "Done",
+      "assignedTo": "Nome do Desenvolvedor",
+      "bugCount": 2
+    }
+  ]
 }
 ```
 

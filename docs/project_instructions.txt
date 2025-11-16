@@ -21,7 +21,11 @@ Project Instructions - Next.js 16 + Tailwind + Shadcn + Azure DevOps Boards
   - /dashboard
     - page.tsx
   - /api
+    - /squads
+      - route.ts
     - /tasks
+      - route.ts
+    - /pbi-return-rate
       - route.ts
 - /components
   - /ui (shadcn components)
@@ -33,8 +37,10 @@ Project Instructions - Next.js 16 + Tailwind + Shadcn + Azure DevOps Boards
 4. Azure DevOps API Usage
 - Requires Personal Access Token (PAT)
 - API wrapper will include:
-  - list squads (teams)
-  - list tasks for a squad
+  - list projects in organization
+  - list tasks for a project
+  - analyze PBIs with rework (PBIs with Bug children)
+  - track work item relations (parent-child)
 - Environment variables
 
 5. UI Requirements
@@ -46,24 +52,49 @@ Project Instructions - Next.js 16 + Tailwind + Shadcn + Azure DevOps Boards
 
 6. Components
 - Select (shadcn)
+- Tabs (shadcn) - Two tabs for different views
+- Badge (shadcn) - Status indicators
 - Cards
 - Table
 - Chart
 - Skeleton for Loading
 
 7. Data Flow
-- User selects squad from Select component
-- Frontend calls /api/tasks
+- User selects project from Select component
+- Frontend displays Tabs with two views:
+  1. Return Rate of PBIs (OKR tracking)
+  2. General Task Overview
+- Frontend calls appropriate API endpoints
 - Backend requests Azure DevOps API
-- Backend returns tasks
+- Backend returns data
 - Frontend displays:
-  - Task list
-  - Charts:
-    - Tasks per Status
-    - Tasks per Type
-    - Tasks per User
+  - PBI Return Rate Tab:
+    - First Semester metrics (target: <10%, ideal: <5%)
+    - Second Semester metrics (target: <5%, ideal: <2.5%)
+    - Status badges (Tranquilo/green, Atenção/yellow, Perigo/red)
+    - Table of PBIs with rework (PBIs with Bug children)
+  - Overview Tab:
+    - Task list
+    - Charts:
+      - Tasks per Status
+      - Tasks per Type
+      - Tasks per User
 
-8. Missing Variables
+8. OKR Tracking
+- OKR: "Garantir taxa de retorno de PBIs abaixo de 10% no primeiro semestre e abaixo de 5% no segundo"
+- Rework Definition: PBI has at least one Bug as a child work item
+- Calculation: (PBIs with Bugs / Total PBIs) * 100
+- Status Thresholds:
+  - First Semester:
+    - <5%: Tranquilo (green)
+    - 5-10%: Atenção (yellow)
+    - >10%: Perigo (red)
+  - Second Semester:
+    - <2.5%: Tranquilo (green)
+    - 2.5-5%: Atenção (yellow)
+    - >5%: Perigo (red)
+
+9. Missing Variables
 If any required variables (PAT, organization, project) or endpoint details are missing, request them from user.
 
 9. Documentation Checks
