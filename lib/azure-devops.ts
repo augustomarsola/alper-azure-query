@@ -161,11 +161,10 @@ export class AzureDevOpsClient {
 
       // Get PBI IDs (Azure DevOps API limit is 200 IDs per request)
       const pbiIds = wiqlResult.workItems.map((wi: { id: number }) => wi.id);
+      
+      console.log(`Total PBIs found: ${pbiIds.length}`);
 
-      // Limit to 200 PBIs to avoid API issues
-      const limitedPbiIds = pbiIds.slice(0, 200);
-
-      if (limitedPbiIds.length === 0) {
+      if (pbiIds.length === 0) {
         return {
           firstSemester: {
             semester: "1º Semestre",
@@ -187,38 +186,64 @@ export class AzureDevOpsClient {
         };
       }
 
-      // Fetch full PBI details with relations
-      const workItemsUrl = `${
-        this.baseUrl
-      }/_apis/wit/workitems?ids=${limitedPbiIds.join(
-        ","
-      )}&$expand=relations&api-version=${API_VERSION}`;
+      // Helper function to add delay between requests
+      const delay = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
 
-      const workItemsResponse = await fetch(workItemsUrl, {
-        headers: this.headers,
-        cache: "no-store",
-      });
+      // Fetch all PBIs in batches of 200 with delay between requests
+      const allPbis: WorkItem[] = [];
+      const batchSize = 200;
+      const delayBetweenRequests = 500; // 500ms delay between requests
 
-      if (!workItemsResponse.ok) {
-        const errorText = await workItemsResponse.text();
-        console.error("Azure DevOps API Error:", {
-          status: workItemsResponse.status,
-          statusText: workItemsResponse.statusText,
-          body: errorText,
-          url: workItemsUrl,
+      for (let i = 0; i < pbiIds.length; i += batchSize) {
+        const batch = pbiIds.slice(i, i + batchSize);
+        const batchNumber = Math.floor(i / batchSize) + 1;
+        const totalBatches = Math.ceil(pbiIds.length / batchSize);
+        
+        console.log(`Fetching batch ${batchNumber}/${totalBatches} (${batch.length} PBIs)...`);
+        
+        const workItemsUrl = `${
+          this.baseUrl
+        }/_apis/wit/workitems?ids=${batch.join(
+          ","
+        )}&$expand=relations&api-version=${API_VERSION}`;
+
+        const workItemsResponse = await fetch(workItemsUrl, {
+          headers: this.headers,
+          cache: "no-store",
         });
-        throw new Error(
-          `Failed to fetch PBI details: ${workItemsResponse.statusText} (${workItemsResponse.status})`
-        );
+
+        if (!workItemsResponse.ok) {
+          const errorText = await workItemsResponse.text();
+          console.error("Azure DevOps API Error:", {
+            status: workItemsResponse.status,
+            statusText: workItemsResponse.statusText,
+            body: errorText,
+            url: workItemsUrl,
+            batch: batchNumber,
+          });
+          throw new Error(
+            `Failed to fetch PBI details (batch ${batchNumber}): ${workItemsResponse.statusText} (${workItemsResponse.status})`
+          );
+        }
+
+        const workItemsData = await workItemsResponse.json();
+        const batchPbis = workItemsData.value || [];
+        allPbis.push(...batchPbis);
+        
+        console.log(`Batch ${batchNumber}/${totalBatches} completed. Total PBIs so far: ${allPbis.length}`);
+        
+        // Add delay between requests (except for the last batch)
+        if (i + batchSize < pbiIds.length) {
+          await delay(delayBetweenRequests);
+        }
       }
 
-      const workItemsData = await workItemsResponse.json();
-      const pbis = workItemsData.value || [];
+      console.log(`All PBIs fetched: ${allPbis.length} total`);
 
       // Analyze PBIs for bugs
       const pbisWithBugs = [];
 
-      for (const pbi of pbis) {
+      for (const pbi of allPbis) {
         const childRelations =
           pbi.relations?.filter(
             (rel: { rel: string }) =>
@@ -272,7 +297,7 @@ export class AzureDevOpsClient {
       }
 
       // Separate by semester
-      const firstSemesterPBIs = pbis.filter((pbi: WorkItem) => {
+      const firstSemesterPBIs = allPbis.filter((pbi: WorkItem) => {
         const createdDate = new Date(pbi.fields["System.CreatedDate"]);
         return (
           createdDate >= new Date(firstSemesterStart) &&
@@ -280,7 +305,7 @@ export class AzureDevOpsClient {
         );
       });
 
-      const secondSemesterPBIs = pbis.filter((pbi: WorkItem) => {
+      const secondSemesterPBIs = allPbis.filter((pbi: WorkItem) => {
         const createdDate = new Date(pbi.fields["System.CreatedDate"]);
         return (
           createdDate >= new Date(secondSemesterStart) &&
