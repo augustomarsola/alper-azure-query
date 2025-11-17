@@ -159,23 +159,56 @@ export class AzureDevOpsClient {
         };
       }
 
-      // Get PBI IDs
+      // Get PBI IDs (Azure DevOps API limit is 200 IDs per request)
       const pbiIds = wiqlResult.workItems.map((wi: { id: number }) => wi.id);
+
+      // Limit to 200 PBIs to avoid API issues
+      const limitedPbiIds = pbiIds.slice(0, 200);
+
+      if (limitedPbiIds.length === 0) {
+        return {
+          firstSemester: {
+            semester: "1º Semestre",
+            totalPBIs: 0,
+            pbisWithRework: 0,
+            percentage: 0,
+            status: "Tranquilo" as const,
+            statusColor: "green" as const,
+          },
+          secondSemester: {
+            semester: "2º Semestre",
+            totalPBIs: 0,
+            pbisWithRework: 0,
+            percentage: 0,
+            status: "Tranquilo" as const,
+            statusColor: "green" as const,
+          },
+          pbisWithRework: [],
+        };
+      }
 
       // Fetch full PBI details with relations
       const workItemsUrl = `${
         this.baseUrl
-      }/_apis/wit/workitems?ids=${pbiIds.join(
+      }/_apis/wit/workitems?ids=${limitedPbiIds.join(
         ","
       )}&$expand=relations&api-version=${API_VERSION}`;
+
       const workItemsResponse = await fetch(workItemsUrl, {
         headers: this.headers,
         cache: "no-store",
       });
 
       if (!workItemsResponse.ok) {
+        const errorText = await workItemsResponse.text();
+        console.error("Azure DevOps API Error:", {
+          status: workItemsResponse.status,
+          statusText: workItemsResponse.statusText,
+          body: errorText,
+          url: workItemsUrl,
+        });
         throw new Error(
-          `Failed to fetch PBI details: ${workItemsResponse.statusText}`
+          `Failed to fetch PBI details: ${workItemsResponse.statusText} (${workItemsResponse.status})`
         );
       }
 
@@ -325,6 +358,12 @@ export class AzureDevOpsClient {
       };
     } catch (error) {
       console.error("Error fetching PBIs with rework:", error);
+      if (error instanceof Error) {
+        console.error("Error details:", {
+          message: error.message,
+          stack: error.stack,
+        });
+      }
       throw error;
     }
   }
