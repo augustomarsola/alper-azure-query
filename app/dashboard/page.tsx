@@ -31,6 +31,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { getCache, setCache } from "@/lib/cache";
 import {
   ChartData,
   PBIWithRework,
@@ -70,6 +71,15 @@ export default function DashboardPage() {
       try {
         setLoading(true);
         setError(null);
+
+        // Tentar buscar do cache primeiro
+        const cachedProjects = getCache<Project[]>("projects");
+        if (cachedProjects) {
+          setProjects(cachedProjects);
+          setLoading(false);
+          return;
+        }
+
         const response = await fetch("/api/squads");
         const data = await response.json();
 
@@ -77,7 +87,11 @@ export default function DashboardPage() {
           throw new Error(data.error || "Failed to fetch projects");
         }
 
-        setProjects(data.projects || []);
+        const projects = data.projects || [];
+        setProjects(projects);
+
+        // Salvar no cache
+        setCache("projects", projects);
       } catch (err) {
         setError(
           err instanceof Error ? err.message : "Failed to load projects"
@@ -102,6 +116,24 @@ export default function DashboardPage() {
 
       setTasksLoading(true);
       try {
+        // Tentar buscar do cache primeiro
+        const cacheKey = `tasks_${selectedProject}`;
+        const cachedData = getCache<{
+          workItems: WorkItem[];
+          charts: {
+            byStatus: ChartData[];
+            byType: ChartData[];
+            byUser: ChartData[];
+          };
+        }>(cacheKey);
+
+        if (cachedData) {
+          setWorkItems(cachedData.workItems);
+          setChartData(cachedData.charts);
+          setTasksLoading(false);
+          return;
+        }
+
         const response = await fetch(
           `/api/tasks?projectName=${encodeURIComponent(selectedProject)}`
         );
@@ -113,6 +145,12 @@ export default function DashboardPage() {
 
         setWorkItems(data.workItems || []);
         setChartData(data.charts);
+
+        // Salvar no cache
+        setCache(cacheKey, {
+          workItems: data.workItems || [],
+          charts: data.charts,
+        });
       } catch (err) {
         setError(err instanceof Error ? err.message : "Failed to load tasks");
       } finally {
@@ -134,6 +172,21 @@ export default function DashboardPage() {
       setReturnRateLoading(true);
       try {
         const currentYear = new Date().getFullYear();
+
+        // Tentar buscar do cache primeiro
+        const cacheKey = `returnRate_${selectedProject}_${currentYear}`;
+        const cachedData = getCache<{
+          firstSemester: ReturnRateData;
+          secondSemester: ReturnRateData;
+          pbisWithRework: PBIWithRework[];
+        }>(cacheKey);
+
+        if (cachedData) {
+          setReturnRateData(cachedData);
+          setReturnRateLoading(false);
+          return;
+        }
+
         const response = await fetch(
           `/api/pbi-return-rate?projectName=${encodeURIComponent(
             selectedProject
@@ -146,6 +199,9 @@ export default function DashboardPage() {
         }
 
         setReturnRateData(data);
+
+        // Salvar no cache
+        setCache(cacheKey, data);
       } catch (err) {
         console.error("Error loading return rate:", err);
         setReturnRateData(null);
@@ -392,7 +448,9 @@ export default function DashboardPage() {
                     <CardTitle>PBIs com Retrabalho</CardTitle>
                     <CardDescription>
                       {returnRateData.pbisWithRework.length} PBI
-                      {returnRateData.pbisWithRework.length !== 1 ? "s" : ""}{" "}
+                      {returnRateData.pbisWithRework.length !== 1
+                        ? "s"
+                        : ""}{" "}
                       com bugs identificado
                       {returnRateData.pbisWithRework.length !== 1 ? "s" : ""}
                     </CardDescription>
